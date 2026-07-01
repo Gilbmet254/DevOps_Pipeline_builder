@@ -1,0 +1,17 @@
+{
+  "name": "pipeline-builder-backend",
+  "version": "1.0.0",
+  "description": "API for the visual CI/CD pipeline builder: YAML generation, templates, dry-run simulation, cost estimation",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "js-yaml": "^4.1.0",
+    "uuid": "^9.0.1"
+  }
+}

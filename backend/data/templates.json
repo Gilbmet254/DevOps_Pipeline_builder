@@ -1,0 +1,139 @@
+[
+  {
+    "id": "node-ci-basic",
+    "name": "Node.js CI (build + test)",
+    "description": "Checkout, install dependencies, run tests. A good starting point for any Node.js project.",
+    "author": "pipeline-builder-team",
+    "tags": ["node", "ci", "starter"],
+    "pipeline": {
+      "name": "Node.js CI",
+      "triggers": ["push", "pull_request"],
+      "variables": { "NODE_ENV": "test" },
+      "stages": [
+        {
+          "id": "stage-build-test",
+          "name": "Build & Test",
+          "jobs": [
+            {
+              "id": "job-build-test",
+              "name": "build-and-test",
+              "runsOn": "ubuntu-latest",
+              "needs": [],
+              "steps": [
+                { "id": "s1", "type": "checkout", "name": "Checkout code" },
+                { "id": "s2", "type": "cache", "name": "Cache node_modules", "path": "node_modules", "key": "npm-${{ hashFiles('package-lock.json') }}" },
+                { "id": "s3", "type": "run", "name": "Install dependencies", "command": "npm ci" },
+                { "id": "s4", "type": "run", "name": "Run tests", "command": "npm test" },
+                { "id": "s5", "type": "run", "name": "Build", "command": "npm run build" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "docker-build-deploy",
+    "name": "Docker Build & Deploy",
+    "description": "Builds a Docker image, pushes an artifact reference, then deploys to a target environment.",
+    "author": "pipeline-builder-team",
+    "tags": ["docker", "deploy"],
+    "pipeline": {
+      "name": "Docker Build & Deploy",
+      "triggers": ["push"],
+      "variables": { "IMAGE_NAME": "myapp" },
+      "stages": [
+        {
+          "id": "stage-build",
+          "name": "Build",
+          "jobs": [
+            {
+              "id": "job-docker-build",
+              "name": "docker-build",
+              "runsOn": "ubuntu-latest",
+              "needs": [],
+              "steps": [
+                { "id": "s1", "type": "checkout", "name": "Checkout code" },
+                { "id": "s2", "type": "docker-build", "name": "Build image", "image": "myapp:${{ github.sha }}" },
+                { "id": "s3", "type": "artifact-upload", "name": "Upload build manifest", "artifactName": "build-manifest", "path": "manifest.json" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "stage-deploy",
+          "name": "Deploy",
+          "jobs": [
+            {
+              "id": "job-deploy",
+              "name": "deploy-production",
+              "runsOn": "ubuntu-latest",
+              "needs": [],
+              "steps": [
+                { "id": "s1", "type": "artifact-download", "name": "Download build manifest", "artifactName": "build-manifest", "path": "." },
+                { "id": "s2", "type": "deploy", "name": "Deploy to production", "command": "./scripts/deploy.sh production" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "python-lint-test-deploy",
+    "name": "Python Lint, Test & Deploy",
+    "description": "Runs linting and pytest in parallel jobs, then deploys once both succeed.",
+    "author": "community",
+    "tags": ["python", "lint", "test", "deploy"],
+    "pipeline": {
+      "name": "Python CI/CD",
+      "triggers": ["push", "pull_request"],
+      "variables": { "PYTHON_VERSION": "3.12" },
+      "stages": [
+        {
+          "id": "stage-quality",
+          "name": "Quality Checks",
+          "jobs": [
+            {
+              "id": "job-lint",
+              "name": "lint",
+              "runsOn": "ubuntu-latest",
+              "needs": [],
+              "steps": [
+                { "id": "s1", "type": "checkout", "name": "Checkout code" },
+                { "id": "s2", "type": "run", "name": "Install linters", "command": "pip install ruff" },
+                { "id": "s3", "type": "run", "name": "Run ruff", "command": "ruff check ." }
+              ]
+            },
+            {
+              "id": "job-test",
+              "name": "test",
+              "runsOn": "ubuntu-latest",
+              "needs": [],
+              "steps": [
+                { "id": "s1", "type": "checkout", "name": "Checkout code" },
+                { "id": "s2", "type": "run", "name": "Install dependencies", "command": "pip install -r requirements.txt" },
+                { "id": "s3", "type": "run", "name": "Run pytest", "command": "pytest --maxfail=1 --disable-warnings" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "stage-deploy",
+          "name": "Deploy",
+          "jobs": [
+            {
+              "id": "job-deploy",
+              "name": "deploy",
+              "runsOn": "ubuntu-latest",
+              "needs": [],
+              "steps": [
+                { "id": "s1", "type": "deploy", "name": "Deploy to staging", "command": "./scripts/deploy.sh staging" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]
